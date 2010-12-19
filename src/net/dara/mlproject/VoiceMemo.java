@@ -1,18 +1,11 @@
 package net.dara.mlproject;
 
 import java.util.Date;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.net.URL;
-
-import sun.misc.BASE64Encoder;
-import sun.misc.BASE64Decoder;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 import com.thoughtworks.xstream.annotations.XStreamConverter;
+import com.thoughtworks.xstream.converters.extended.EncodedByteArrayConverter;
 
 /**
  * A representation of a voice memo.
@@ -32,7 +25,8 @@ public class VoiceMemo
     /**
      * BASE64 encoding of the voice memo.
      */
-    private String recordedVoiceData;
+    @XStreamConverter(EncodedByteArrayConverter.class)
+    private byte[] recordedVoiceData;
     /**
      * Transcription of the voice memo. Empty when transcriptionStatus is no "completed".
      */
@@ -40,43 +34,12 @@ public class VoiceMemo
     /**
      * The status of the transcription, "unavailable", "completed" or "failed".
      */
-    private String transcriptionStatus;
+    private String transcriptionStatus = "unavailable";
 
     public VoiceMemo(Date recordedAt, int recordedDuration)
     {
         this.recordedAt = recordedAt;
         this.recordedDuration = recordedDuration;
-    }
-
-    /**
-     * Read the voice recording from the specified stream and initialize
-     * recordedVoiceData field after encoding it to BASE64.
-     */
-    public void readRecordedVoiceDataFromStream(InputStream is)
-        throws IOException
-    {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        BASE64Encoder enc = new BASE64Encoder();
-        enc.encode(is, os);
-        this.recordedVoiceData = os.toString();
-    }
-
-    /**
-     * Write the voice recording to the specified stream after decoding
-     * recordedVoiceData field as BASE64.
-     */
-    public void writeRecordedVoiceDataToStream(OutputStream os)
-        throws IOException
-    {
-        if (this.recordedVoiceData == null || this.recordedVoiceData.equals("")) {
-            return;
-        }
-        // StringBufferInputStream is deprecated, so using ByteArrayInputStream,
-        // but it adds an extra copy, may be we can avoid it if we implement a
-        // custom InputStream that convert char's to byte's on demand.
-        ByteArrayInputStream is = new ByteArrayInputStream(this.recordedVoiceData.getBytes());
-        BASE64Decoder dec = new BASE64Decoder();
-        dec.decodeBuffer(is, os);
     }
 
     public int getRecordedDuration()
@@ -89,14 +52,35 @@ public class VoiceMemo
         return this.recordedAt;
     }
 
-    public String getRecordedVoiceData()
+    public void setRecordedVoiceData(byte[] data)
+    {
+        this.recordedVoiceData = data;
+    }
+
+    public byte[] getRecordedVoiceData()
     {
         return this.recordedVoiceData;
     }
 
+    /**
+     * Set transcription status ("completed" or "failed") and the text (can be null or empty)
+     */
     public void setTranscription(String transcriptionStatus, String transcriptionText)
     {
+        if (!transcriptionStatus.equals("completed") && !transcriptionStatus.equals("failed")) {
+            throw new IllegalArgumentException("transcriptionStatus can only be completed or failed");
+        }
         this.transcriptionStatus = transcriptionStatus;
         this.transcriptionText = transcriptionText;
+    }
+
+    public String getTranscriptionText()
+    {
+        return this.transcriptionText;
+    }
+
+    public String getTranscriptionStatus()
+    {
+        return this.transcriptionStatus;
     }
 }

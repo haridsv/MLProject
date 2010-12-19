@@ -8,7 +8,7 @@ public class StartMemoResource extends ServerResource
 {
     public static final String STARTMEMO_RESPONSE_KEY = "voicememo.startmemo.response";
 
-    //@Get("xml")
+    //@Post("xml")
     //public String startMemo()
     //{
     //    return System.getProperty(STARTMEMO_TWIML_KEY);

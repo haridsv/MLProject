@@ -18,7 +18,15 @@
     </path>
   </target>
 
-  <target name="compile" depends="init"
+  <target name="copyprops" depends="init">
+      <copy todir="${build}" overwrite="true">
+          <fileset dir="${src}">
+              <include name="**/*.properties"/>
+          </fileset>
+      </copy>
+  </target>
+
+  <target name="compile" depends="init,copyprops"
         description="compile the source">
     <javac debug="on" srcdir="${src}" destdir="${build}" includeantruntime="false">
         <classpath refid="base.cp"/>
@@ -47,6 +55,16 @@
               </fileset>
           </batchtest>
       </junit>
+  </target>
+
+  <target name="run_note_taker" depends="compile"
+      description="run note taker service" >
+      <java classname="net.dara.mlproject.NoteTakerService" fork="true">
+          <classpath>
+              <path refid="base.cp"/>
+              <pathelement path="${build}"/>
+          </classpath>
+      </java>
   </target>
 
   <target name="clean"

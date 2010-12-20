@@ -1,16 +1,18 @@
 package net.dara.mlproject.resources;
 
+import org.restlet.data.MediaType;
 import org.restlet.resource.Get;
 import org.restlet.resource.Post;
 import org.restlet.resource.ServerResource;
 import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
 
 public class RecordedMemoResource extends ServerResource
 {
     public static final String RECORDEDMEMO_RESPONSE_KEY = "voicememo.recordedmemo.response";
 
     @Post
-    public String recordedMemo(Representation repr)
+    public Representation recordedMemo(Representation repr)
     {
         // return new StringRepresentation(System.getProperty(RECORDEDMEMO_RESPONSE_KEY), 
         //        MediaType.APPLICATION_XML);

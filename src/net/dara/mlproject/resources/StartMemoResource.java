@@ -15,6 +15,8 @@ public class StartMemoResource extends ServerResource
     @Post
     public Representation startMemo(Representation repr)
     {
+        //return new StringRepresentation(System.getProperty(STARTMEMO_TWIML_KEY),
+        //        MediaType.APPLICATION_XML);
         Representation result = new StringRepresentation(("<Response>\n"+
                 "   <Say>Hello. Please start recording your voice memo after the beep. Press # key when done.</Say>\n"+
                 "   <Record action=\"voicememo\" maxLength=\"#\" finishOnKey=\"#\"/>\n"+

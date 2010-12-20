@@ -9,15 +9,16 @@ public class RecordedMemoResource extends ServerResource
 {
     public static final String RECORDEDMEMO_RESPONSE_KEY = "voicememo.recordedmemo.response";
 
-    //@Get("xml")
-    @Post("xml")
-    public String recordedMemo()
+    @Post
+    public String recordedMemo(Representation repr)
     {
-        //return System.getProperty(RECORDEDMEMO_RESPONSE_KEY);
-        return ("<Response>\n"+
+        // return new StringRepresentation(System.getProperty(RECORDEDMEMO_RESPONSE_KEY), 
+        //        MediaType.APPLICATION_XML);
+        Representation result = new StringRepresentation(("<Response>\n"+
                 "   <Say>Your memo has been recorded.</Say>\n"+
-                "   <Play>"+getRequest().getEntityAsForm().getFirstValue("RecordingUrl")+"</Play>\n"+
+                "   <Play>"+getReference().getQueryAsForm().getFirstValue("RecordingUrl")+"</Play>\n"+
                 "   <Say>Goodbye.</Say>\n"+
-                "</Response>");
+                "</Response>"), MediaType.APPLICATION_XML);
+        return result;
     }
 }

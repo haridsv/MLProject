@@ -20,7 +20,7 @@ public class NoteTakerApplication extends Application
         // Create a router Restlet that defines routes.
         Router router = new Router(getContext());
 
-        router.attach("/startmemo", StartMemoResource.class);
+        router.attach("/startmemo.xqy", StartMemoResource.class);
         router.attach("/recordedmemo", RecordedMemoResource.class);
         router.attach("/transcribedmemo", TranscribedMemoResource.class);
 

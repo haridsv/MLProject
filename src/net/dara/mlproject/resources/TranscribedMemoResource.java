@@ -10,10 +10,9 @@ import org.restlet.representation.Representation;
 public class TranscribedMemoResource extends ServerResource
 {
     @Post
-    public void transcribedMemo(Representation data)
+    public void transcribedMemo(Representation repr)
     {
-        //Form form = new Form(data);
-        Form form = getRequest().getEntityAsForm();
+        Form form = getReference().getQueryAsForm();
         for (Parameter parameter : form) {
             System.out.print("parameter " + parameter.getName());
             System.out.println("/" + parameter.getValue());

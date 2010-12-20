@@ -16,6 +16,7 @@
         <include name="**/*.jar"/>
       </fileset>
     </path>
+    <property name="java.util.logging.config.file" location="${src}/net/dara/mlproject/logging.properties"/>
   </target>
 
   <target name="copyprops" depends="init">
@@ -64,6 +65,7 @@
               <path refid="base.cp"/>
               <pathelement path="${build}"/>
           </classpath>
+          <sysproperty key="java.util.logging.config.file" value="${java.util.logging.config.file}"/>
       </java>
   </target>
 

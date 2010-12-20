@@ -3,6 +3,7 @@ package net.dara.mlproject.resources;
 import org.restlet.resource.Get;
 import org.restlet.resource.Post;
 import org.restlet.resource.ServerResource;
+import org.restlet.representation.Representation;
 
 public class StartMemoResource extends ServerResource
 {
@@ -14,12 +15,13 @@ public class StartMemoResource extends ServerResource
     //    return System.getProperty(STARTMEMO_TWIML_KEY);
     //}
 
-    @Get("xml")
-    public String hello()
+    @Post("xml")
+    public String hello(Representation repr)
     {
-        return ("<Response>\n"+
-                "   <Say>Hello. Please start recording your voice memo after the beep. Press # key when done.</Say>\n"+
-                "   <Record action=\"voicememo\" maxLength=\"#\" finishOnKey=\"#\"/>\n"+
-                "</Response>");
+        return "If this worked, it means the problem is with the XML?";
+        //return ("<Response>\n"+
+        //        "   <Say>Hello. Please start recording your voice memo after the beep. Press # key when done.</Say>\n"+
+        //        "   <Record action=\"voicememo\" maxLength=\"#\" finishOnKey=\"#\"/>\n"+
+        //        "</Response>");
     }
 }

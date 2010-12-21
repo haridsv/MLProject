@@ -28,7 +28,7 @@ The webservice provides several REST API calls for Twilio's server to use. When 
 the user is guided through the recording process. Twilio calls our webservice first when the recording is available, and later when the transcription is ready. The webservice uses MarkLogic server to create and update memo
 as Twilio makes that information available to the service. Here is a visualization of the entire process:
 
-.. image:: http://i1222.photobucket.com/albums/dd499/haridsv/scheme.png
+.. image:: http://img189.imageshack.us/img189/2971/scheme.png
 
 
 1. User initiates call

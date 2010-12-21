@@ -28,8 +28,7 @@ The webservice provides several REST API calls for Twilio's server to use. When 
 the user is guided through the recording process. Twilio calls our webservice first when the recording is available, and later when the transcription is ready. The webservice uses MarkLogic server to create and update memo
 as Twilio makes that information available to the service. Here is a visualization of the entire process:
 
-.. FIXME: This image is not appearing when rendered by github.com
-.. image:: scheme.png
+.. image:: http://i1222.photobucket.com/albums/dd499/haridsv/scheme.png
 
 
 1. User initiates call
@@ -56,7 +55,7 @@ The response back to Twilio is a ``TwiML`` document that guides the user through
 4. Instruct user to speak
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Twilio plays the message that is part of the "Say" element. When user presses the "#" key or exceeds the 30 second length, the recording ends.
+Twilio plays the message that is part of the ``Say`` element. When user presses the "#" key or exceeds the 30 second length, the recording ends.
 
 5. Recording ends
 ~~~~~~~~~~~~~~~~~
@@ -105,15 +104,45 @@ If ``TranscriptionStatus`` is ``"Completed"``, the ``TranscriptionText`` is then
 MarkLogic Application
 ---------------------
 
-<TBD>
+Here are some useful queries to lookup information in the voice memo database and help build an application:
 
-Constructing XML Documents
---------------------------
+Given a memo URI, retrieve its voice recording
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
 
-Each voice memo is a separate XML document, and constructing XML documents by hand is not fun. Fortunately, there are many libraries to help and one such extremely easy to use library is XStream. XStream makes it easy to
-serialize Java objects into XML and as a bonus, it can also deserialize them back to Java objects.
+    fn:doc(fn:doc("/voicememo/<CallSid>.xml")//recordedVoiceDocURI/text())/node()
 
-See code snippet `Serialize and Deserialize using XStream`_ to see how simple it is to use XSteram.
+Retrieving the transcribed memos
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Let us first work on a function that can output HTML formatted memo's::
+
+    declare function local:get_memos($xpathexpr as item()*) as item()
+    {
+        <html xmlns="http://www.w3.org/1999/xhtml"> 
+        <head><title>List of Memos</title></head> 
+        <body>
+        <table>
+        <tr><th>Recorded At</th><th>Memo</th></tr>
+        {
+        for $memo in $xpathexpr
+        return <tr><td>{fn:format-dateTime(xdmp:parse-dateTime("[Y0001]-[M01]-[D01]T[h01]:[m01]:[s01].[f1][Z]", $memo/*:recordedAt/text()),
+                         "[Y01]/[M01]/[D01] [H01]:[m01]:[s01]:[f01]")}</td><td>{$memo/*:transcriptionText/text()}</td></tr>
+        }
+        </table>
+        </body> 
+        </html>
+    }
+    ;
+
+We can now pass different ``XPath`` expressions to it. To return all memo's that have a transcription available, try this::
+
+    let $xpathexpr := //*:voicememo[*:transcriptionStatus = "completed"]
+    return local:get_memos($xpathexpr)
+
+To find all memo's with specific word in them::
+
+    let $xpathexpr := //*:voicememo[contains(*:transcriptionText, "macy")]
+    return local:get_memos($xpathexpr)
 
 VoiceMemo structure
 ~~~~~~~~~~~~~~~~~~~
@@ -122,10 +151,10 @@ The structure of an XML document representing a voice memo is as follows::
 
     <voicememo>
         <recordedAt>2010-12-16T21:33:54.6173-05:00</recordedAt>
-        <recordedVoiceData><![CDATA[base64]]></recordedVoiceData>
+        <recordedVoiceDocURI>/voicememo/recording/CA21bc69b2af50e38b40d0bb93d43a8e04.xml</recordedVoiceDocURI>
         <recordedDuration>seconds</recordedDuration>
-        <transcriptionText>text</transcriptionText>
         <transcriptionStatus>status</transcriptionStatus>
+        <transcriptionText>text</transcriptionText>
     </voicememo>
 
 Adding VoiceMemo's to MarkLogic Server
@@ -133,92 +162,64 @@ Adding VoiceMemo's to MarkLogic Server
 
 There are two distinct operations to perform while adding voice memo's.
 
-* First, the voice memo needs to be inserted with partial information using ``xdmp:document-insert()`` function.
-* Second, the same memo needs to be updated when more information (viz., transcription) is available.
+* First, the voice memo needs to be inserted with partial information using ``xdmp:document-insert()`` function. The document also includes a ``transcriptionStatus`` with a value of ``"unavailable"``, which will be replaced
+  once the transcription is available.
+* Second, the same memo needs to be updated when more information (viz., transcription) is available. The call back from Twilio with this information typically happens after a few seconds to minutes of the completion of the
+  call. This process involves reconstructing the document URI and retrieving the document to do the following:
 
-There are two approaches to updating the memo:
-
-* When an updated document is inserted with the same document URI, MarkLogic automatically overwrites the previous document with the new one. Using this approach, we would essentially do the following operations:
-
-  - retrieve the partial document,
-  - deserialize the XML using XStream to reconstruct VoiceMemo object
-  - update VoiceMemo object
-  - serialize the VoiceMemo back to XML using XStream
-  - insert the updated XML using the same URI as the original.
-
-* Update document to add nodes that are missing using the `xdmp:node-insert` variants.
-
-The first approach makes it easier to work and is cleaner to work with XStream.
+    - replace the ``transcriptionStatus`` node with the value of ``"TranscriptionStatus"`` parameter from the request using ``xdmp:node-replace()``.
+    - insert the ``transcriptionText`` node with the value of ``"TranscriptionText"`` parameter from the request using ``xdmp:node-insert-child()``.
 
 Building REST services
 ----------------------
 
-The Note Taker is a REST based webservice that provides API's for Twilio to call into for actions and callbacks. There are several libraries that make it easier to create REST based webservices and Restlet is one of them.
-The Restlet library also comes with built-in support for running an HTTP server that is good enough for most cases.
+The Note Taker is a REST based webservice that provides API's for Twilio to call into for actions and callbacks. There are several approaches to building such a service, and for the current purpose, we use MarkLogic's
+ability to act as an application server and build an application using the XQuery files. However the application is **NOT** a web application, so it is not going to serve HTML pages, but rather XML, more particularly TwiML.
 
-There are 3 URI's that are exposed by the Note Taker and they are:
+There are 3 URI's that are exposed by the WebService and they are:
 
-* /voicememo/startmemo - Gets the conversation started
-* /voicememo/recordedmemo - Creates the memo with voice recording information
-* /voicememo/transcribedmemo - Updates the memo with transcribed message.
+* /voicememo/startmemo.xqy - Gets the conversation started. This is also the ``"Voice URL"`` for Twilio.
+* /voicememo/recordedmemo.xqy - Creates the memo with voice recording information.
+* /voicememo/transcribedmemo.xqy - Updates the memo with transcribed message.
 
-Each of these resources are handled by a dedicated ``ServerResource`` class.
+Each of these resources are served by distinct XQuery files.
 
 Code snippets
 =============
 
-Serialize and Deserialize using XStream
----------------------------------------
+Say Hello with Twilio
+---------------------
 
-This code shows how to serialize and deserialize using XStream::
+Here is a simple XQuery file that serves TwiML. Save this as an ``.xqy`` file and set the URL as ``"Voice URL"`` for Twilio. Make sure that the security is disabled [2]_ such that Twilio can access the URL without requiring
+any credentials::
 
-    import com.thoughtworks.xstream.XStream;
+    xquery version "1.0-ml";
 
-    public class Person {
-        private String firstName;
-        private String lastName;
-        public Person(String firstName, String lastName) {
-            this.firstName = firstName;
-            this.lastName = lastName;
-        }
-        public String toString() {
-            return firstName+" "+lastName;
-        }
-        public static void main(String[] args) {
-            XStream xstream = new XStream();
-            xstream.alias("person", Person.class);
-            Person p1 = new Person("Tom", "Dick");
-            String xml = xstream.toXML(p1);
-            System.out.println(xml);
-            Person p2 = (Person) xstream.fromXML(xml);
-            System.out.println(p2.toString());
-        }
-    }
+    let $callerCity := xdmp:get-request-field("CallerCity", "Unknown City")
 
-The above, when run, will print::
+    return <Response><Say>Hello caller, from {$callerCity}. We wish you a Merry Christmas. Goodbye.</Say></Response>
 
-    <person>
-      <firstName>Tom</firstName>
-      <lastName>Dick</lastName>
-    </person>
-    Tom Dick
+Retrieve binary data from URL and insert as document
+----------------------------------------------------
 
-Receive voice recording from Twilio
------------------------------------
+This code snippet shows how to retrieve a URL containing binary data (such as the Twilio voice recording) and insert it as a binary document. This code can be executed as it is in CQ[1]_::
 
-This (BeanShell [1]_) code snippet reads byte[] from URL stream::
+    xquery version "1.0-ml";
+    declare namespace foo = "xdmp:http";
 
-    import java.io.ByteArrayOutputStream;
+    (: A magnificent ant macro picture by gbohne from: http://www.flickr.com/photos/gbohne/5052878709/ :)
+    let $response := xdmp:http-get("http://farm5.static.flickr.com/4152/5052878709_44b4bc6430_o_d.jpg")
+    return xdmp:document-insert('/image/image1.xml', $response[2]/node(), (), '/image')
     
-    url = new URL("file:///path/to/some.mp3");
-    byteBuffer = new byte[4096];
-    is = url.openStream();
-    os = new ByteArrayOutputStream();
-    while ((n = is.read(byteBuffer)) > 0) {
-        os.write(byteBuffer, 0, n);
-    }
-    bytes = os.toByteArray();
-    
+Retrieve a binary document from MarkLogic server
+------------------------------------------------
+
+This code snippet shows how to retrieve the above document back. This code can be executed as it is in CQ [1]_. When executed, the browser would prompt you to save the file, name the file appropriately (say, image.jpg) and
+verify it by opening the file.::
+
+    xquery version "1.0-ml";
+
+    doc('/image/image1.xml')/node()
 
 Assumptions
 ===========
@@ -226,11 +227,15 @@ Assumptions
 * A basic assumption that simplifies the logic a bit is that, when recording ends, Twilio's action always takes place ahead of callback for transcription. In practice this might be the actual documented behavior, but even
   otherwise, probably safe enough to assume.
 
-External Dependencies
-=====================
+References
+==========
+* http://developer.marklogic.com/learn/2009-01-get-started-apps
+* http://blogs.avalonconsult.com/blog/generic/installing-marklogic-on-an-ec2-micro-instance-free-for-1-year/
+* http://www.w3schools.com/xpath/default.asp
+* http://xqzone.marklogic.com/pubs/4.2/apidocs/All.html
+* http://docs.marklogic.com/4.2doc/docapp.xqy
+* http://www.twilio.com/docs/
+* http://www.twilio.com/docs/api/2010-04-01/twiml/twilio_request
 
-- Restlet
-- log4j
-- xstream
-
-.. [1] BeanShell is a Java source interpreter, availble from http://www.beanshell.org
+.. [1] MarkLogic CQ is a web-based XQuery tool, available from http://developer.marklogic.com/code/cq
+.. [2] To disable security, see the information posted here: http://markmail.org/thread/6ntgnwrjlrusq2ot

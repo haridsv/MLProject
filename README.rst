@@ -236,6 +236,7 @@ References
 * http://docs.marklogic.com/4.2doc/docapp.xqy
 * http://www.twilio.com/docs/
 * http://www.twilio.com/docs/api/2010-04-01/twiml/twilio_request
+* http://developer.marklogic.com/learn/2004-09-dates
 
 .. [1] MarkLogic CQ is a web-based XQuery tool, available from http://developer.marklogic.com/code/cq
 .. [2] To disable security, see the information posted here: http://markmail.org/thread/6ntgnwrjlrusq2ot
